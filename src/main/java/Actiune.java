@@ -3,12 +3,13 @@ import java.util.UUID;
 
 public class Actiune {
     private String type;
+    private UUID idClient;
     private UUID idActiune;
     private String nume;
     private int cantitate;
     private float pret;
 
-    public Actiune(String type, UUID idActiune, String nume, int cantitate, float pret) {
+    public Actiune( UUID idActiune, UUID idClient, String type, String nume, int cantitate, float pret) {
         this.type = type;
         this.idActiune = idActiune;
         this.nume = nume;
@@ -67,5 +68,15 @@ public class Actiune {
 
     public void setPret(float pret) {
         this.pret = pret;
+    }
+
+    @Override
+    public String toString() {
+        return
+                "\ntype='" + type + '\'' +
+                ", nume='" + nume + '\'' +
+                ", cantitate=" + cantitate +
+                ", pret=" + pret +
+                "}";
     }
 }

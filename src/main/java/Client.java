@@ -1,19 +1,25 @@
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Scanner;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 public class Client {
     private UUID idClient;
     private Scanner scanner = new Scanner(System.in);
-    public void runClient() {
+    public void runClient() throws IOException, TimeoutException {
+        System.out.println("Optiuni\n1.Cere lista actiuni\n2.Postare cerere\n3.Editeaza o actiune\n4.Afiseaza istoricul tranzactiilor\n5.Posteaza oferta\n6.Iesire");
 
         //meniu
         while (true) {
-            System.out.println("Optiuni\n1.Cere lista actiuni\n2.Cumpara actiuni\n3.Editeaza o actiune\n4.Afiseaza istoricul tranzactiilor\n5.Posteaza actiune spre cumparare\n6.Iesire");
             String opt = this.scanner.nextLine();
             switch (opt) {
                 case "1":
-                    System.out.println("Actiunile sunt:\n");
-                    //e.addNews(new New(topic,new ArrayList<>(), UUID.randomUUID() , title1));
+                    System.out.println("Actiunile sunt:");
+                    DirectExchange.publishMessage();
                     break;
                 case "2":
                     System.out.println("Pentru a cumpara o actiune, trebuie sa introduci numele ei, cantitatea si pretul\n ");
@@ -43,22 +49,25 @@ public class Client {
                     break;
                 case "5":
                     //postare
-                    System.out.print("\n Posteaza actiune spre cumparare\n Introdu numele actiunii");
+                    System.out.print("\nPosteaza oferta\n\nIntrodu numele actiunii:");
                     String numeActiuneP = this.scanner.nextLine();
-                    System.out.print("\nScrie pretul actiunii: ");
-                    String pretP = this.scanner.nextLine();
-                    System.out.print("\nScrie cantitatea: ");
-                    String cantitateP = this.scanner.nextLine();
+                    System.out.print("Scrie pretul actiunii: ");
+                    float pretP = this.scanner.nextFloat();
+                    System.out.print("Scrie cantitatea: ");
+                    int cantitateP = this.scanner.nextInt();
+                    UUID idActiune = UUID.randomUUID();
+                    Actiune actiune= new Actiune(idActiune, idClient, Config.type_oferta, numeActiuneP, cantitateP, pretP);
+                    ActionDb.saveAction(actiune);
 
                     break;
                 case "6":
                     System.out.println("Iesire... Va mai asteptam!");
                     System.exit(0);
                     break;
-                default:
-                    System.exit(0);
             }
         }
     }
+
+
 
 }

@@ -30,7 +30,6 @@ public class Client {
                     System.out.println("Pret: ");
                     String pret = this.scanner.nextLine();
                     System.out.println("Va multumim!\n");
-                    //e.modifyNewsDomain(UUID.fromString(newsId1), domain);
                     break;
                 case "3":
                     System.out.println("Editeaza o actiune...\nScrie ID-ul actiunii ");
@@ -41,11 +40,9 @@ public class Client {
                     String pretNou = this.scanner.nextLine();
                     System.out.print("\nScrie noua cantitate: ");
                     String cantitateNou = this.scanner.nextLine();
-//                    e.modifyNewsTitle(UUID.fromString(newsId3), title3);
                     break;
                 case "4":
                     System.out.println("Se afiseaza istoricul tranzactiilor...\n");
-                    //System.out.println("Readers number=" + e.getReadersForNews(UUID.fromString(newsId4)) + "\n");
                     break;
                 case "5":
                     //postare
@@ -58,7 +55,7 @@ public class Client {
                     UUID idActiune = UUID.randomUUID();
                     Actiune actiune= new Actiune(idActiune, idClient, Config.type_oferta, numeActiuneP, cantitateP, pretP);
                     ActionDb.saveAction(actiune);
-
+                    DirectExchange.publishMessage();
                     break;
                 case "6":
                     System.out.println("Iesire... Va mai asteptam!");

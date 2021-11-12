@@ -58,7 +58,7 @@ public class Client {
                     Actiune actiune = new Actiune(idActiune, idClient, Config.type_oferta, numeActiuneP, cantitateP, pretP);
                     DirectExchange.subscribeMessage();
                     ActionDb.saveAction(actiune);
-
+                    DirectExchange.publishMessage();
                     break;
                 case "6":
                     System.out.println("Iesire... Va mai asteptam!");

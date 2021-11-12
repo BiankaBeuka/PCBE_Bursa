@@ -10,6 +10,7 @@ import java.util.concurrent.TimeoutException;
 public class Client {
     private UUID idClient;
     private Scanner scanner = new Scanner(System.in);
+
     public void runClient() throws IOException, TimeoutException {
         System.out.println("Optiuni\n1.Cere lista actiuni\n2.Postare cerere\n3.Editeaza o actiune\n4.Afiseaza istoricul tranzactiilor\n5.Posteaza oferta\n6.Iesire");
 
@@ -20,6 +21,7 @@ public class Client {
                 case "1":
                     System.out.println("Actiunile sunt:");
                     DirectExchange.publishMessage();
+//                    System.out.println(ActionDb.getActionList());
                     break;
                 case "2":
                     System.out.println("Pentru a cumpara o actiune, trebuie sa introduci numele ei, cantitatea si pretul\n ");
@@ -30,7 +32,6 @@ public class Client {
                     System.out.println("Pret: ");
                     String pret = this.scanner.nextLine();
                     System.out.println("Va multumim!\n");
-                    //e.modifyNewsDomain(UUID.fromString(newsId1), domain);
                     break;
                 case "3":
                     System.out.println("Editeaza o actiune...\nScrie ID-ul actiunii ");
@@ -41,11 +42,9 @@ public class Client {
                     String pretNou = this.scanner.nextLine();
                     System.out.print("\nScrie noua cantitate: ");
                     String cantitateNou = this.scanner.nextLine();
-//                    e.modifyNewsTitle(UUID.fromString(newsId3), title3);
                     break;
                 case "4":
                     System.out.println("Se afiseaza istoricul tranzactiilor...\n");
-                    //System.out.println("Readers number=" + e.getReadersForNews(UUID.fromString(newsId4)) + "\n");
                     break;
                 case "5":
                     //postare
@@ -56,7 +55,8 @@ public class Client {
                     System.out.print("Scrie cantitatea: ");
                     int cantitateP = this.scanner.nextInt();
                     UUID idActiune = UUID.randomUUID();
-                    Actiune actiune= new Actiune(idActiune, idClient, Config.type_oferta, numeActiuneP, cantitateP, pretP);
+                    Actiune actiune = new Actiune(idActiune, idClient, Config.type_oferta, numeActiuneP, cantitateP, pretP);
+                    DirectExchange.subscribeMessage();
                     ActionDb.saveAction(actiune);
 
                     break;
@@ -67,7 +67,5 @@ public class Client {
             }
         }
     }
-
-
 
 }

@@ -37,7 +37,7 @@ public class DirectExchange {
     public static void subscribeMessage() throws IOException {
         Channel channel = ConnectionManager.getConnection().createChannel();
         channel.basicConsume("ActionList", true, ((idClient, message) -> {
-            System.out.println(idClient);
+//            System.out.println(idClient);
             System.out.println("ActionList:" + new String(message.getBody()));
         }), idClient -> {
             System.out.println(idClient);
@@ -63,10 +63,10 @@ public class DirectExchange {
             @Override
             public void run() {
                 try {
-                    Client client=new Client();
-                    client.runClient();
+//                    Client client=new Client();
+//                    client.runClient();
                     DirectExchange.subscribeMessage();
-                } catch (IOException | TimeoutException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
@@ -76,7 +76,8 @@ public class DirectExchange {
             @Override
             public void run() {
                 try {
-
+                    Client client=new Client();
+                    client.runClient();
                     DirectExchange.publishMessage();
                 } catch (IOException | TimeoutException e) {
                     e.printStackTrace();

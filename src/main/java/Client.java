@@ -1,22 +1,20 @@
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.*;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeoutException;
 
-public class Client {
+public class Client implements AutoCloseable{
     private UUID idClient;
     private Scanner scanner = new Scanner(System.in);
     private ActionDb actionDb=new ActionDb();
     private Channel c;
     private Connection conn;
     private static final String QUEUE_NAME = "client_to_server";
+    private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
     public Client(){
 
     }
@@ -27,6 +25,7 @@ public class Client {
         Connection connection = factory.newConnection();
         c = connection.createChannel();
         conn=connection;
+        idClient = UUID.randomUUID();
     }
 
     public void runClient() throws IOException, TimeoutException {
@@ -49,14 +48,26 @@ public class Client {
                     };
                     break;
                 case "2":
-                    postAction();
+                    try{
+                        postCerere();
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    };
                     break;
                 case "3":
-                    showHistory();
+                    try{
+                        System.out.println(showHistory());
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    };
                     break;
                 case "4":
                     //postare
-                    postOffer();
+                    try{
+                        postOffer();
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    };
                     break;
                 case "5":
                     System.out.println("Iesire... Va mai asteptam!");
@@ -66,7 +77,7 @@ public class Client {
         }
     }
 
-    private void postOffer() throws IOException, TimeoutException {
+    private void postOffer() throws IOException, TimeoutException, InterruptedException {
         System.out.print("\nPosteaza oferta\n\nIntrodu numele actiunii:");
         String numeActiuneP = this.scanner.nextLine();
         System.out.print("Scrie pretul actiunii: ");
@@ -75,22 +86,91 @@ public class Client {
         int cantitateP = this.scanner.nextInt();
         UUID idActiune = UUID.randomUUID();
         Actiune actiune = new Actiune(idActiune, idClient, Config.type_oferta, numeActiuneP, cantitateP, pretP);
-        ActionDb.saveAction(actiune);
+        final String corrId = UUID.randomUUID().toString();
+        //request list
+        String replyQueueName = c.queueDeclare().getQueue();
+        AMQP.BasicProperties props = new AMQP.BasicProperties
+                .Builder()
+                .correlationId(corrId)
+                .replyTo(replyQueueName)
+                .build();
+        String message = "vindeActiuni "+ actiune;
+        c.basicPublish("", TRANZACTII_QUEUE_NAME, props, message.getBytes("UTF-8"));
+
+        final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
+
+        String ctag = c.basicConsume(replyQueueName, true, (consumerTag, delivery) -> {
+            if (delivery.getProperties().getCorrelationId().equals(corrId)) {
+                response.offer(new String(delivery.getBody(), "UTF-8"));
+            }
+        }, consumerTag -> {
+        });
+
+        String result = response.take();
+        c.basicCancel(ctag);
+        System.out.println(result);
     }
 
-    private void showHistory() {
+    private String showHistory() throws IOException, InterruptedException {
         System.out.println("Se afiseaza istoricul tranzactiilor...\n");
+        final String corrId = UUID.randomUUID().toString();
+        //request list
+        String replyQueueName = c.queueDeclare().getQueue();
+        AMQP.BasicProperties props = new AMQP.BasicProperties
+                .Builder()
+                .correlationId(corrId)
+                .replyTo(replyQueueName)
+                .build();
+        String message = "getHistory";
+        c.basicPublish("", QUEUE_NAME, props, message.getBytes("UTF-8"));
+
+        final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
+
+        String ctag = c.basicConsume(replyQueueName, true, (consumerTag, delivery) -> {
+            if (delivery.getProperties().getCorrelationId().equals(corrId)) {
+                response.offer(new String(delivery.getBody(), "UTF-8"));
+            }
+        }, consumerTag -> {
+        });
+
+        String result = response.take();
+        c.basicCancel(ctag);
+        return result;
     }
 
-    private void postAction() {
+    private void postCerere() throws IOException, InterruptedException {
         System.out.println("Pentru a cumpara o actiune, trebuie sa introduci numele ei, cantitatea si pretul\n ");
         System.out.println("Numele actiunii: ");
         String numeActiune = this.scanner.nextLine();
         System.out.println("Cantitate: ");
-        String cantitate = this.scanner.nextLine();
+        int cantitate = this.scanner.nextInt();
         System.out.println("Pret: ");
-        String pret = this.scanner.nextLine();
+        float pret = this.scanner.nextFloat();
         System.out.println("Va multumim!\n");
+        Actiune actiune = new Actiune(UUID.randomUUID(), idClient,Config.type_cerere,numeActiune,cantitate,pret);
+        final String corrId = UUID.randomUUID().toString();
+        //request list
+        String replyQueueName = c.queueDeclare().getQueue();
+        AMQP.BasicProperties props = new AMQP.BasicProperties
+                .Builder()
+                .correlationId(corrId)
+                .replyTo(replyQueueName)
+                .build();
+        String message = "cumparaActiuni "+ actiune;
+        c.basicPublish("", TRANZACTII_QUEUE_NAME, props, message.getBytes("UTF-8"));
+
+        final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
+
+        String ctag = c.basicConsume(replyQueueName, true, (consumerTag, delivery) -> {
+            if (delivery.getProperties().getCorrelationId().equals(corrId)) {
+                response.offer(new String(delivery.getBody(), "UTF-8"));
+            }
+        }, consumerTag -> {
+        });
+
+        String result = response.take();
+        c.basicCancel(ctag);
+        System.out.println(result);
     }
 
     private String requestActions() throws IOException, InterruptedException {
@@ -117,24 +197,9 @@ public class Client {
 
         String result = response.take();
         c.basicCancel(ctag);
-        System.out.println("result:     "+result);
         return result;
     }
     public void close() throws IOException {
         conn.close();
-    }
-    private void receiveFromServer() throws IOException {
-        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-            String message = new String(delivery.getBody(), "UTF-8");
-
-            System.out.println(" [x] Received '" + message + "'");
-            try {
-                //send list
-                System.out.println("received");
-                } finally {
-                    System.out.println(" [x] Done");
-                }
-        };
-        c.basicConsume("to_client_queue",true,deliverCallback,consumerTag->{});
     }
 }

@@ -5,7 +5,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
 public class Config {
-    public static String EXCHANGE_NAME = "news_exchange";
+    public static String EXCHANGE_NAME = "actions_exchange";
     public static String host = "localhost";
     public static String QUEUE_NAME = "read_queue";
     public static ConnectionFactory connectionFactory;

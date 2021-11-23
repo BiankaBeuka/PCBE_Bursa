@@ -12,6 +12,7 @@ public class Actiune {
     public Actiune( UUID idActiune, UUID idClient, String type, String nume, int cantitate, float pret) {
         this.type = type;
         this.idActiune = idActiune;
+        this.idClient = idClient;
         this.nume = nume;
         this.cantitate = cantitate;
         this.pret = pret;
@@ -72,11 +73,21 @@ public class Actiune {
 
     @Override
     public String toString() {
-        return
-                "\ntype='" + type + '\'' +
+        return  "type='" + type + '\'' +
+                ", idClient=" + idClient +
+                ", idActiune=" + idActiune +
                 ", nume='" + nume + '\'' +
                 ", cantitate=" + cantitate +
-                ", pret=" + pret +
-                "}";
+                ", pret=" + pret+"\n" ;
+    }
+
+    public static Actiune toAction(String[] array){
+        String type = array[1].replace("\'","");
+        UUID idClient=UUID.fromString(array[3]);
+        UUID idActiune=UUID.fromString(array[5]);
+        String nume = array[7].replace("\'","");
+        int cantitate = Integer.parseInt(array[9]);
+        float pret = Float.parseFloat(array[11]);
+        return new Actiune(idActiune, idClient, type, nume, cantitate, pret);
     }
 }

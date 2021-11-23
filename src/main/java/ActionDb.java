@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ActionDb {
 
@@ -23,6 +24,15 @@ public class ActionDb {
         ActionDb.actionList = actionList;
     }
 
+    public Actiune getActionFromList(UUID idActiune){
+        for(Actiune a:actionList)
+            if(a.getIdActiune()==idActiune)
+                return a;
+        return null;
+    }
 
-
+    @Override
+    public String toString() {
+        return "ActionDb{}";
+    }
 }

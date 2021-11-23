@@ -1,6 +1,6 @@
 public class App {
     public static void main(String[] args){
         System.out.println("Hello World");
-        new Thread((Runnable) new Client()).start();
+        //new Thread((Runnable) new Client()).start();
     }
 }

@@ -12,6 +12,7 @@ public class Actiune {
     public Actiune( UUID idActiune, UUID idClient, String type, String nume, int cantitate, float pret) {
         this.type = type;
         this.idActiune = idActiune;
+        this.idClient = idClient;
         this.nume = nume;
         this.cantitate = cantitate;
         this.pret = pret;
@@ -76,7 +77,6 @@ public class Actiune {
                 "\ntype='" + type + '\'' +
                 ", nume='" + nume + '\'' +
                 ", cantitate=" + cantitate +
-                ", pret=" + pret +
-                "}";
+                ", pret=" + pret;
     }
 }

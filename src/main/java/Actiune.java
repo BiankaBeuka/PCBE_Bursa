@@ -3,6 +3,9 @@ import java.util.UUID;
 
 public class Actiune {
     private String type;
+
+
+
     private UUID idClient;
     private UUID idActiune;
     private String nume;
@@ -71,6 +74,10 @@ public class Actiune {
         this.pret = pret;
     }
 
+    public UUID getIdClient() {
+        return idClient;
+    }
+
     @Override
     public String toString() {
         return  "type='" + type + '\'' +
@@ -81,6 +88,14 @@ public class Actiune {
                 ", pret=" + pret+"\n" ;
     }
 
+    public String myToString() {
+        return  "type='" + type + '\'' +
+                ", nume='" + nume + '\'' +
+                ", cantitate=" + cantitate +
+                ", pret=" + pret ;
+    }
+
+
     public static Actiune toAction(String[] array){
         String type = array[1].replace("\'","");
         UUID idClient=UUID.fromString(array[3]);
@@ -90,4 +105,5 @@ public class Actiune {
         float pret = Float.parseFloat(array[11]);
         return new Actiune(idActiune, idClient, type, nume, cantitate, pret);
     }
+
 }

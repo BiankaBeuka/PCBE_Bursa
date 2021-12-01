@@ -78,12 +78,12 @@ public class Client implements AutoCloseable{
     }
 
     private void postOffer() throws IOException, TimeoutException, InterruptedException {
-        System.out.print("\nPosteaza oferta\n\nIntrodu numele actiunii:");
+        System.out.print("\nPosteaza oferta\n\nNumele actiunii:");
         String numeActiuneP = this.scanner.nextLine();
-        System.out.print("Scrie pretul actiunii: ");
-        float pretP = this.scanner.nextFloat();
-        System.out.print("Scrie cantitatea: ");
+        System.out.print("Cantitatea: ");
         int cantitateP = this.scanner.nextInt();
+        System.out.print("Pret: ");
+        float pretP = this.scanner.nextFloat();
         UUID idActiune = UUID.randomUUID();
         Actiune actiune = new Actiune(idActiune, idClient, Config.type_oferta, numeActiuneP, cantitateP, pretP);
         final String corrId = UUID.randomUUID().toString();

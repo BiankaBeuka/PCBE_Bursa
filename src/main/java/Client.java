@@ -15,6 +15,8 @@ public class Client implements AutoCloseable{
     private Connection conn;
     private static final String QUEUE_NAME = "client_to_server";
     private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
+    private static final String TRANZACTII2_QUEUE_NAME = "queue_tranzactii2";
+
     public Client(){
 
     }
@@ -140,11 +142,11 @@ public class Client implements AutoCloseable{
 
     private void postCerere() throws IOException, InterruptedException {
         System.out.println("Pentru a cumpara o actiune, trebuie sa introduci numele ei, cantitatea si pretul\n ");
-        System.out.println("Numele actiunii: ");
+        System.out.print("Numele actiunii: ");
         String numeActiune = this.scanner.nextLine();
-        System.out.println("Cantitate: ");
+        System.out.print("Cantitate: ");
         int cantitate = this.scanner.nextInt();
-        System.out.println("Pret: ");
+        System.out.print("Pret: ");
         float pret = this.scanner.nextFloat();
         System.out.println("Va multumim!\n");
         Actiune actiune = new Actiune(UUID.randomUUID(), idClient,Config.type_cerere,numeActiune,cantitate,pret);
@@ -157,7 +159,7 @@ public class Client implements AutoCloseable{
                 .replyTo(replyQueueName)
                 .build();
         String message = "cumparaActiuni "+ actiune;
-        c.basicPublish("", TRANZACTII_QUEUE_NAME, props, message.getBytes("UTF-8"));
+        c.basicPublish("", TRANZACTII2_QUEUE_NAME, props, message.getBytes("UTF-8"));
 
         final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
 

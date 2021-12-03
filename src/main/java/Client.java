@@ -15,7 +15,6 @@ public class Client implements AutoCloseable{
     private Connection conn;
     private static final String QUEUE_NAME = "client_to_server";
     private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
-    private static final String TRANZACTII2_QUEUE_NAME = "queue_tranzactii2";
 
     public Client(){
 
@@ -159,7 +158,7 @@ public class Client implements AutoCloseable{
                 .replyTo(replyQueueName)
                 .build();
         String message = "cumparaActiuni "+ actiune;
-        c.basicPublish("", TRANZACTII2_QUEUE_NAME, props, message.getBytes("UTF-8"));
+        c.basicPublish("", TRANZACTII_QUEUE_NAME, props, message.getBytes("UTF-8"));
 
         final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
 

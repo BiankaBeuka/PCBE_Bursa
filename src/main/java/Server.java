@@ -13,7 +13,6 @@ public class Server {
 
     private static final String QUEUE_NAME = "client_to_server";
     private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
-    private static final String TRANZACTII2_QUEUE_NAME = "queue_tranzactii2";
     private static final List<Actiune> listaCereri = new ArrayList<>(); //puse de cumparatori
     private static final List<Actiune> listaOferte = new ArrayList<>(); //puse de vanzatori
     private static final List<String> istoric = new ArrayList<>();
@@ -123,39 +122,7 @@ public class Server {
                             } finally {
                                 System.out.println("S-a efectuat vanzarea");
                             }
-                        }
-                    };
-                    channel.basicConsume(TRANZACTII_QUEUE_NAME, false, deliverCallback, (consumerTag -> {
-                    }));
-                    while (true) {
-                        if (sem.availablePermits() == 0)
-                            sem.release();
-                    }
-                } catch (IOException | TimeoutException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        Thread threadCumparari = new Thread() {
-            @Override
-            public void run() {
-                try (Connection connection = factory.newConnection();
-                     Channel channel = connection.createChannel()) {
-                    channel.queueDeclare(TRANZACTII2_QUEUE_NAME, false, false, false, null);
-                    channel.queuePurge(TRANZACTII2_QUEUE_NAME);
-
-                    channel.basicQos(1);
-
-                    Object monitor = new Object();
-                    DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-                        AMQP.BasicProperties replyProps = new AMQP.BasicProperties
-                                .Builder()
-                                .correlationId(delivery.getProperties().getCorrelationId())
-                                .build();
-                        String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-                        String[] messageArr = message.split(" ", 2);
-                        if (messageArr[0].equals("cumparaActiuni")) {
+                        } else if (messageArr[0].equals("cumparaActiuni")) {
                             try {
                                 //send history
                                 sem.acquire(1);
@@ -180,25 +147,23 @@ public class Server {
                                 System.out.println("S-a efectuat cumpararea");
                             }
                         }
+
                     };
-                    channel.basicConsume(TRANZACTII2_QUEUE_NAME, false, deliverCallback, (consumerTag -> {
+                    channel.basicConsume(TRANZACTII_QUEUE_NAME, false, deliverCallback, (consumerTag -> {
                     }));
                     while (true) {
                         if (sem.availablePermits() == 0)
                             sem.release();
                     }
-
                 } catch (IOException | TimeoutException e) {
                     e.printStackTrace();
                 }
             }
         };
         threadListe.start();
-        threadCumparari.start();
         threadVanzari.start();
 
         threadListe.join();
-        threadCumparari.join();
         threadVanzari.join();
 
     }

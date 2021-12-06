@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 
@@ -13,15 +16,17 @@ public class Server {
 
     private static final String QUEUE_NAME = "client_to_server";
     private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
-    private static final List<Actiune> listaCereri = new ArrayList<>(); //puse de cumparatori
-    private static final List<Actiune> listaOferte = new ArrayList<>(); //puse de vanzatori
+    private static final ConcurrentHashMap<UUID,Actiune> listaCereri = new ConcurrentHashMap<>();
+    //private static final List<Actiune> listaCereri = new ArrayList<>(); //puse de cumparatori
+    private static final ConcurrentHashMap<UUID,Actiune> listaOferte = new ConcurrentHashMap<>(); //puse de vanzatori
     private static final List<String> istoric = new ArrayList<>();
     static Semaphore sem = new Semaphore(1);
 
     public static void main(String[] args) throws InterruptedException {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
-//        listaOferte.add(new Actiune(UUID.randomUUID(), UUID.randomUUID(), "OFERTA", "nume", 100, 20.00F));
+       // Actiune a = new Actiune(UUID.randomUUID(), UUID.randomUUID(), "OFERTA", "nume", 100, 20.00F);
+        //listaOferte.put(UUID.randomUUID(), a);
 //        istoric.add(new Actiune(UUID.randomUUID(), UUID.randomUUID(), "CERERE", "istoric", 100, 20.00F));
         Thread threadListe = new Thread() {
             @Override
@@ -105,11 +110,9 @@ public class Server {
                                 String msg = messageArr[1];
                                 String[] act = messageArr[1].split("=|,");
                                 Actiune actiuneNoua = Actiune.toAction(act);
-                                listaOferte.add(actiuneNoua);
+                                UUID idClient = actiuneNoua.getIdClient();
+                                listaOferte.put(idClient,actiuneNoua);
                                 //vinzi - oferi -> cauti in cerere
-                                if (!findCerereForOferta(actiuneNoua)) {
-                                    msg = "Nu s-a putut efectua tranzactia";
-                                }
 
                                 channel.basicPublish("", delivery.getProperties().getReplyTo(),
                                         replyProps,
@@ -126,16 +129,11 @@ public class Server {
                             try {
                                 //send history
                                 sem.acquire(1);
-                                String msg;
+                                String msg = messageArr[1];
                                 String[] act = messageArr[1].split("=|,");
                                 Actiune actiuneNoua = Actiune.toAction(act);
-                                listaCereri.add(actiuneNoua);
-
-                                if (!findOfertaForCerere(actiuneNoua)) {
-                                    msg = "Tranzactia nu s-a efectuat. Cererea dvs. este in asteptare!";
-                                } else {
-                                    msg = "Tranzactia s-a efectuat cu succes!";
-                                }
+                                UUID idClient = actiuneNoua.getIdClient();
+                                listaCereri.put(idClient,actiuneNoua);
 
                                 channel.basicPublish("", delivery.getProperties().getReplyTo(),
                                         replyProps,
@@ -160,8 +158,37 @@ public class Server {
                 }
             }
         };
+
+        Thread threadTranzactii = new Thread(){
+            @Override
+            public void run(){
+                //iterare pe lista de oferte
+                while(true){
+                    listaOferte.forEach((keyOferta,valueOferta)->{
+                        listaCereri.forEach((keyCerere,valueCerere)->{
+                            if(!keyOferta.equals(keyCerere)&&valueOferta.getNume().equals(valueCerere.getNume())&&valueOferta.getPret()==valueCerere.getPret()){
+                                if (valueCerere.getCantitate() > valueOferta.getCantitate()) {
+                                    istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
+                                    valueCerere.setCantitate(valueCerere.getCantitate() - valueOferta.getCantitate());
+                                    listaOferte.remove(keyOferta,valueOferta);
+                                } else if (valueCerere.getCantitate() < valueOferta.getCantitate()) {
+                                    istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
+                                    valueOferta.setCantitate(valueOferta.getCantitate() - valueCerere.getCantitate());
+                                    listaCereri.remove(keyCerere,valueCerere);
+                                } else if (valueCerere.getCantitate() == valueOferta.getCantitate()) {
+                                    istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
+                                    listaOferte.remove(keyOferta,valueOferta);
+                                    listaCereri.remove(keyCerere,valueCerere);
+                                }
+                            }
+                        });
+                    });
+                }
+            }
+        };
         threadListe.start();
         threadVanzari.start();
+        threadTranzactii.start();
 
         threadListe.join();
         threadVanzari.join();

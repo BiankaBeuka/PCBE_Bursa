@@ -10,7 +10,6 @@ import java.util.concurrent.TimeoutException;
 public class Client implements AutoCloseable{
     private UUID idClient;
     private Scanner scanner = new Scanner(System.in);
-    private ActionDb actionDb=new ActionDb();
     private Channel c;
     private Connection conn;
     private static final String QUEUE_NAME = "client_to_server";

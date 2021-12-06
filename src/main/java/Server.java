@@ -16,8 +16,7 @@ public class Server {
 
     private static final String QUEUE_NAME = "client_to_server";
     private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
-    private static final ConcurrentHashMap<UUID,Actiune> listaCereri = new ConcurrentHashMap<>();
-    //private static final List<Actiune> listaCereri = new ArrayList<>(); //puse de cumparatori
+    private static final ConcurrentHashMap<UUID,Actiune> listaCereri = new ConcurrentHashMap<>();//puse de cumparatori
     private static final ConcurrentHashMap<UUID,Actiune> listaOferte = new ConcurrentHashMap<>(); //puse de vanzatori
     private static final List<String> istoric = new ArrayList<>();
     static Semaphore sem = new Semaphore(1);
@@ -25,9 +24,6 @@ public class Server {
     public static void main(String[] args) throws InterruptedException {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
-       // Actiune a = new Actiune(UUID.randomUUID(), UUID.randomUUID(), "OFERTA", "nume", 100, 20.00F);
-        //listaOferte.put(UUID.randomUUID(), a);
-//        istoric.add(new Actiune(UUID.randomUUID(), UUID.randomUUID(), "CERERE", "istoric", 100, 20.00F));
         Thread threadListe = new Thread() {
             @Override
             public void run() {
@@ -112,7 +108,6 @@ public class Server {
                                 Actiune actiuneNoua = Actiune.toAction(act);
                                 UUID idClient = actiuneNoua.getIdClient();
                                 listaOferte.put(idClient,actiuneNoua);
-                                //vinzi - oferi -> cauti in cerere
 
                                 channel.basicPublish("", delivery.getProperties().getReplyTo(),
                                         replyProps,
@@ -192,54 +187,7 @@ public class Server {
 
         threadListe.join();
         threadVanzari.join();
-
+        threadTranzactii.join();
     }
-
-    private static boolean findOfertaForCerere(Actiune cerere) {
-        for (int i = 0; i < listaOferte.size(); i++) {
-            Actiune oferta = listaOferte.get(i);
-            if (cerere.getNume().equals(oferta.getNume()) && cerere.getPret() == oferta.getPret() && !cerere.getIdClient().equals(oferta.getIdClient())) {
-                if (cerere.getCantitate() > oferta.getCantitate()) {
-                    cerere.setCantitate(cerere.getCantitate() - oferta.getCantitate());
-                    istoric.add(cerere.myToString() + RED + " MATCH WITH " + RESET + oferta.myToString() + "\n");
-                    listaOferte.remove(i);
-                } else if (cerere.getCantitate() < oferta.getCantitate()) {
-                    oferta.setCantitate(oferta.getCantitate() - cerere.getCantitate());
-                    istoric.add(cerere.myToString() + RED + " MATCH WITH " + RESET + oferta.myToString() + "\n");
-                    listaCereri.remove(cerere);
-                } else if (cerere.getCantitate() == oferta.getCantitate()) {
-                    istoric.add(cerere.myToString() + RED + " MATCH WITH " + RESET + oferta.myToString() + "\n");
-                    listaOferte.remove(i);
-                    listaCereri.remove(cerere);
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean findCerereForOferta(Actiune oferta) {
-        for (int i = 0; i < listaCereri.size(); i++) {
-            Actiune cerere = listaCereri.get(i);
-            if (oferta.getNume().equals(cerere.getNume()) && oferta.getPret() == cerere.getPret() && !oferta.getIdClient().equals(cerere.getIdClient())) {
-                if (oferta.getCantitate() > cerere.getCantitate()) {
-                    oferta.setCantitate(oferta.getCantitate() - cerere.getCantitate());
-                    istoric.add(cerere.myToString() + RED + " MATCH WITH " + RESET + oferta.myToString() + "\n");
-                    listaCereri.remove(i);
-                } else if (oferta.getCantitate() < cerere.getCantitate()) {
-                    cerere.setCantitate(cerere.getCantitate() - oferta.getCantitate());
-                    istoric.add(cerere.myToString() + RED + " MATCH WITH " + RESET + oferta.myToString() + "\n");
-                    listaOferte.remove(oferta);
-                } else if (oferta.getCantitate() == cerere.getCantitate()) {
-                    istoric.add(cerere.myToString() + RED + " MATCH WITH " + RESET + oferta.myToString() + "\n");
-                    listaCereri.remove(i);
-                    listaOferte.remove(oferta);
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
 
 }

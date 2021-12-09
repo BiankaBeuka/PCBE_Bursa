@@ -1,6 +1,8 @@
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -12,8 +14,10 @@ public class Client implements AutoCloseable{
     private Scanner scanner = new Scanner(System.in);
     private Channel c;
     private Connection conn;
+    private Channel c2;
     private static final String QUEUE_NAME = "client_to_server";
     private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
+    private String queueName;
 
     public Client(){
 
@@ -22,10 +26,17 @@ public class Client implements AutoCloseable{
     public void initialize() throws IOException, TimeoutException {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
+        factory.setAutomaticRecoveryEnabled(true);
         Connection connection = factory.newConnection();
         c = connection.createChannel();
         conn=connection;
         idClient = UUID.randomUUID();
+
+        c2= conn.createChannel();
+        c2.exchangeDeclare("exchangeTranzactii", "direct", true);
+        c2.queueDeclare(idClient.toString(),false,false,true,null);
+        c2.queuePurge(idClient.toString());
+        c2.queueBind(idClient.toString(), "exchangeTranzactii", idClient.toString());
     }
 
     public void runClient() throws IOException, TimeoutException {
@@ -36,8 +47,19 @@ public class Client implements AutoCloseable{
         };
         System.out.println("Optiuni\n1.Cere lista actiuni\n2.Cumpara actiuni\n3.Afiseaza istoricul tranzactiilor\n4.Vinde actiuni\n5.Iesire");
 
+        LinkedList<String> s= new LinkedList<>();
         //meniu
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                       String message = new String(delivery.getBody(), "UTF-8");
+                       s.add(message);
+                   };
+        c2.basicConsume(idClient.toString(), true, deliverCallback, consumerTag -> { });
+
         while (true) {
+            if(s.size()!=0) {
+                System.out.println(s.peek());
+                s.remove();
+            }
             String opt = this.scanner.nextLine();
             switch (opt) {
                 case "1":
@@ -202,4 +224,5 @@ public class Client implements AutoCloseable{
     public void close() throws IOException {
         conn.close();
     }
+
 }

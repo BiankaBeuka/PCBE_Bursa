@@ -6,16 +6,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 
 public class Server {
     public static final String RED = "\033[0;31m";
     public static final String RESET = "\u001B[0m";
-
     private static final String QUEUE_NAME = "client_to_server";
     private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
+
     private static final ConcurrentHashMap<UUID,Actiune> listaCereri = new ConcurrentHashMap<>();//puse de cumparatori
     private static final ConcurrentHashMap<UUID,Actiune> listaOferte = new ConcurrentHashMap<>(); //puse de vanzatori
     private static final List<String> istoric = new ArrayList<>();
@@ -88,7 +87,6 @@ public class Server {
                      Channel channel = connection.createChannel()) {
                     channel.queueDeclare(TRANZACTII_QUEUE_NAME, false, false, false, null);
                     channel.queuePurge(TRANZACTII_QUEUE_NAME);
-
                     channel.basicQos(1);
 
                     DeliverCallback deliverCallback = (consumerTag, delivery) -> {
@@ -106,9 +104,8 @@ public class Server {
                                 String msg = messageArr[1];
                                 String[] act = messageArr[1].split("=|,");
                                 Actiune actiuneNoua = Actiune.toAction(act);
-                                UUID idClient = actiuneNoua.getIdClient();
+                                UUID idClient = actiuneNoua.getIdActiune();
                                 listaOferte.put(idClient,actiuneNoua);
-
                                 channel.basicPublish("", delivery.getProperties().getReplyTo(),
                                         replyProps,
                                         msg.getBytes(StandardCharsets.UTF_8));
@@ -119,6 +116,7 @@ public class Server {
                                 e.printStackTrace();
                             } finally {
                                 System.out.println("S-a efectuat vanzarea");
+
                             }
                         } else if (messageArr[0].equals("cumparaActiuni")) {
                             try {
@@ -127,9 +125,8 @@ public class Server {
                                 String msg = messageArr[1];
                                 String[] act = messageArr[1].split("=|,");
                                 Actiune actiuneNoua = Actiune.toAction(act);
-                                UUID idClient = actiuneNoua.getIdClient();
+                                UUID idClient = actiuneNoua.getIdActiune();
                                 listaCereri.put(idClient,actiuneNoua);
-
                                 channel.basicPublish("", delivery.getProperties().getReplyTo(),
                                         replyProps,
                                         msg.getBytes(StandardCharsets.UTF_8));
@@ -155,30 +152,75 @@ public class Server {
         };
 
         Thread threadTranzactii = new Thread(){
+//            Channel conn;
+            String message="";
+
             @Override
             public void run(){
                 //iterare pe lista de oferte
+                try (Connection connection = factory.newConnection();
+                     Channel channel = connection.createChannel()) {
+                    channel.exchangeDeclare("exchangeTranzactii", "direct", true);
+
                 while(true){
+
                     listaOferte.forEach((keyOferta,valueOferta)->{
                         listaCereri.forEach((keyCerere,valueCerere)->{
-                            if(!keyOferta.equals(keyCerere)&&valueOferta.getNume().equals(valueCerere.getNume())&&valueOferta.getPret()==valueCerere.getPret()){
+                            if(!valueOferta.getIdClient().equals(valueCerere.getIdClient())&&valueOferta.getNume().equals(valueCerere.getNume())&&valueOferta.getPret()==valueCerere.getPret()){
                                 if (valueCerere.getCantitate() > valueOferta.getCantitate()) {
+                                    message = "cerere>oferta";
+                                    try {
+                                        if(channel.isOpen()) {
+                                            channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
+                                        }
+                                        } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }finally {
+
                                     istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
                                     valueCerere.setCantitate(valueCerere.getCantitate() - valueOferta.getCantitate());
-                                    listaOferte.remove(keyOferta,valueOferta);
-                                } else if (valueCerere.getCantitate() < valueOferta.getCantitate()) {
-                                    istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
-                                    valueOferta.setCantitate(valueOferta.getCantitate() - valueCerere.getCantitate());
-                                    listaCereri.remove(keyCerere,valueCerere);
-                                } else if (valueCerere.getCantitate() == valueOferta.getCantitate()) {
-                                    istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
-                                    listaOferte.remove(keyOferta,valueOferta);
-                                    listaCereri.remove(keyCerere,valueCerere);
+                                    listaOferte.remove(keyOferta, valueOferta);
                                 }
+                                } else if (valueCerere.getCantitate() < valueOferta.getCantitate()) {
+                                    message="cerere<oferta";
+                                    try {
+                                        if(channel.isOpen()) {
+                                            channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
+                                        } } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }finally {
+
+                                        istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
+                                        valueOferta.setCantitate(valueOferta.getCantitate() - valueCerere.getCantitate());
+                                        listaCereri.remove(keyCerere, valueCerere);
+                                    }
+                                } else if (valueCerere.getCantitate() == valueOferta.getCantitate()) {
+                                    message = "cerere=oferta";
+
+                                    try {
+                                        if (channel.isOpen()) {
+                                            channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
+                                        }
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    } finally {
+
+                                        istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
+                                        listaOferte.remove(keyOferta, valueOferta);
+                                        listaCereri.remove(keyCerere, valueCerere);
+                                    }
+                                }
+
                             }
                         });
                     });
                 }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (TimeoutException e) {
+                    e.printStackTrace();
+                }
+
             }
         };
         threadListe.start();

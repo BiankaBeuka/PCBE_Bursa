@@ -152,12 +152,10 @@ public class Server {
         };
 
         Thread threadTranzactii = new Thread(){
-//            Channel conn;
             String message="";
-
+            String messageOferta="";
             @Override
             public void run(){
-                //iterare pe lista de oferte
                 try (Connection connection = factory.newConnection();
                      Channel channel = connection.createChannel()) {
                     channel.exchangeDeclare("exchangeTranzactii", "direct", true);
@@ -168,10 +166,12 @@ public class Server {
                         listaCereri.forEach((keyCerere,valueCerere)->{
                             if(!valueOferta.getIdClient().equals(valueCerere.getIdClient())&&valueOferta.getNume().equals(valueCerere.getNume())&&valueOferta.getPret()==valueCerere.getPret()){
                                 if (valueCerere.getCantitate() > valueOferta.getCantitate()) {
-                                    message = "cerere>oferta";
+                                    message = "S-a efectuat tranzactia: "+ valueCerere.myToString()+" pentru "+valueOferta.getCantitate()+" actiuni";
+                                    messageOferta = "S-au vandut actiunile pentru oferta: "+valueOferta.myToString();
                                     try {
                                         if(channel.isOpen()) {
                                             channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
+                                            channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient().toString(), null, messageOferta.getBytes("UTF-8"));
                                         }
                                         } catch (IOException e) {
                                         e.printStackTrace();
@@ -182,29 +182,30 @@ public class Server {
                                     listaOferte.remove(keyOferta, valueOferta);
                                 }
                                 } else if (valueCerere.getCantitate() < valueOferta.getCantitate()) {
-                                    message="cerere<oferta";
+                                    message="S-a efectuat tranzactia: "+ valueCerere.myToString();
+                                    messageOferta = "S-au vandut "+valueCerere.getCantitate()+" actiuni pentru oferta: "+valueOferta.myToString();
                                     try {
                                         if(channel.isOpen()) {
                                             channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
+                                            channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient().toString(), null, messageOferta.getBytes("UTF-8"));
                                         } } catch (IOException e) {
                                         e.printStackTrace();
                                     }finally {
-
                                         istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
                                         valueOferta.setCantitate(valueOferta.getCantitate() - valueCerere.getCantitate());
                                         listaCereri.remove(keyCerere, valueCerere);
                                     }
                                 } else if (valueCerere.getCantitate() == valueOferta.getCantitate()) {
-                                    message = "cerere=oferta";
-
+                                    message = "S-a efectuat tranzactia: "+ valueCerere.myToString();
+                                    messageOferta = "S-au vandut actiunile pentru oferta: "+valueOferta.myToString();
                                     try {
                                         if (channel.isOpen()) {
                                             channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
+                                            channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient().toString(), null, messageOferta.getBytes("UTF-8"));
                                         }
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     } finally {
-
                                         istoric.add(valueCerere.myToString() + RED + " MATCH WITH " + RESET + valueOferta.myToString() + "\n");
                                         listaOferte.remove(keyOferta, valueOferta);
                                         listaCereri.remove(keyCerere, valueCerere);
@@ -215,9 +216,7 @@ public class Server {
                         });
                     });
                 }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (TimeoutException e) {
+                } catch (IOException | TimeoutException e) {
                     e.printStackTrace();
                 }
 

@@ -1,6 +1,6 @@
 import com.rabbitmq.client.*;
+import java.io.*;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -8,13 +8,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeoutException;
 
 public class Client implements AutoCloseable{
-    private UUID idClient;
+    private String id;
     private Scanner scanner = new Scanner(System.in);
     private Channel c;
     private Connection conn;
     private Channel c2;
     private static final String QUEUE_NAME = "client_to_server";
     private static final String TRANZACTII_QUEUE_NAME = "queue_tranzactii";
+    private static ConcurrentLinkedQueue<String> lista = new ConcurrentLinkedQueue<>();
 
     public Client(){}
 
@@ -25,16 +26,21 @@ public class Client implements AutoCloseable{
         Connection connection = factory.newConnection();
         c = connection.createChannel();
         conn=connection;
-        idClient = UUID.randomUUID();
 
         c2= conn.createChannel();
         c2.exchangeDeclare("exchangeTranzactii", "direct", true);
-        c2.queueDeclare(idClient.toString(),false,false,true,null);
-        c2.queuePurge(idClient.toString());
-        c2.queueBind(idClient.toString(), "exchangeTranzactii", idClient.toString());
+        c2.queueDeclare(id, true, false, false, null);
+        c2.queueBind(id, "exchangeTranzactii", id);
+    }
+
+    public void authenticate(){
+        System.out.print("Va rugam introduceti numele de utilizator: ");
+        id = this.scanner.nextLine();
     }
 
     public void runClient() throws IOException {
+
+        authenticate();
         try{
             initialize();
         }catch (IOException | TimeoutException e){
@@ -42,14 +48,12 @@ public class Client implements AutoCloseable{
         };
         System.out.println("Optiuni\n1.Cere lista actiuni\n2.Cumpara actiuni\n3.Afiseaza istoricul tranzactiilor\n4.Vinde actiuni\n5.Verifica mesaje\n6.Iesire");
 
-        ConcurrentLinkedQueue<String> lista = new ConcurrentLinkedQueue<>();
-        //meniu
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-                       String message = new String(delivery.getBody(), "UTF-8");
-                       lista.add(message);
-                   };
-        c2.basicConsume(idClient.toString(), true, deliverCallback, consumerTag -> { });
+            String message = new String(delivery.getBody(), "UTF-8");
+            lista.add(message);
+        };
 
+        c2.basicConsume(id, true, deliverCallback, consumerTag -> { });
         while (true) {
 
             String opt = this.scanner.nextLine();
@@ -98,7 +102,7 @@ public class Client implements AutoCloseable{
         }
     }
 
-    public void printList(ConcurrentLinkedQueue<String> lista){
+    private void printList(ConcurrentLinkedQueue<String> lista){
         while(lista.size()!=0) {
             System.out.println(lista.peek());
             lista.remove();
@@ -123,7 +127,7 @@ public class Client implements AutoCloseable{
         }
         float pretP = this.scanner.nextFloat();
         UUID idActiune = UUID.randomUUID();
-        Actiune actiune = new Actiune(idActiune, idClient, Config.type_oferta, numeActiuneP, cantitateP, pretP);
+        Actiune actiune = new Actiune(idActiune, id, Config.type_oferta, numeActiuneP, cantitateP, pretP);
         final String corrId = UUID.randomUUID().toString();
         //request list
         String replyQueueName = c.queueDeclare().getQueue();
@@ -195,7 +199,7 @@ public class Client implements AutoCloseable{
         }
         float pret = this.scanner.nextFloat();
         System.out.println("Va multumim!\n");
-        Actiune actiune = new Actiune(UUID.randomUUID(), idClient,Config.type_cerere,numeActiune,cantitate,pret);
+        Actiune actiune = new Actiune(UUID.randomUUID(), id,Config.type_cerere,numeActiune,cantitate,pret);
         final String corrId = UUID.randomUUID().toString();
         //request list
         String replyQueueName = c.queueDeclare().getQueue();

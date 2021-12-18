@@ -12,7 +12,6 @@ import java.util.concurrent.TimeoutException;
 public class ThreadTranzactii extends Thread{
     String message="";
     String messageOferta="";
-    private Semaphore sem;
     private ConcurrentHashMap<UUID,Actiune> listaCereri;
     private ConcurrentHashMap<UUID,Actiune> listaOferte;
     private List<String> istoric;
@@ -20,8 +19,7 @@ public class ThreadTranzactii extends Thread{
     public static final String RED = "\033[0;31m";
     public static final String RESET = "\u001B[0m";
 
-    public ThreadTranzactii(ConnectionFactory factory,Semaphore sem, ConcurrentHashMap<UUID,Actiune> listaCereri, ConcurrentHashMap<UUID,Actiune> listaOferte,List<String> istoric) {
-        this.sem = sem;
+    public ThreadTranzactii(ConnectionFactory factory,ConcurrentHashMap<UUID,Actiune> listaCereri, ConcurrentHashMap<UUID,Actiune> listaOferte,List<String> istoric) {
         this.listaCereri=listaCereri;
         this.listaOferte=listaOferte;
         this.istoric=istoric;
@@ -34,7 +32,6 @@ public class ThreadTranzactii extends Thread{
             channel.exchangeDeclare("exchangeTranzactii", "direct", true);
 
             while(true){
-
                 listaOferte.forEach((keyOferta,valueOferta)->{
                     listaCereri.forEach((keyCerere,valueCerere)->{
                         if(!valueOferta.getIdClient().equals(valueCerere.getIdClient())&&valueOferta.getNume().equals(valueCerere.getNume())&&valueOferta.getPret()==valueCerere.getPret()){
@@ -43,8 +40,8 @@ public class ThreadTranzactii extends Thread{
                                 messageOferta = "S-au vandut actiunile pentru oferta: "+valueOferta.myToString();
                                 try {
                                     if(channel.isOpen()) {
-                                        channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
-                                        channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient().toString(), null, messageOferta.getBytes("UTF-8"));
+                                        channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient(), null, message.getBytes("UTF-8"));
+                                        channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient(), null, messageOferta.getBytes("UTF-8"));
                                     }
                                 } catch (IOException e) {
                                     e.printStackTrace();
@@ -59,8 +56,8 @@ public class ThreadTranzactii extends Thread{
                                 messageOferta = "S-au vandut "+valueCerere.getCantitate()+" actiuni pentru oferta: "+valueOferta.myToString();
                                 try {
                                     if(channel.isOpen()) {
-                                        channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
-                                        channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient().toString(), null, messageOferta.getBytes("UTF-8"));
+                                        channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient(), null, message.getBytes("UTF-8"));
+                                        channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient(), null, messageOferta.getBytes("UTF-8"));
                                     } } catch (IOException e) {
                                     e.printStackTrace();
                                 }finally {
@@ -73,8 +70,8 @@ public class ThreadTranzactii extends Thread{
                                 messageOferta = "S-au vandut actiunile pentru oferta: "+valueOferta.myToString();
                                 try {
                                     if (channel.isOpen()) {
-                                        channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient().toString(), null, message.getBytes("UTF-8"));
-                                        channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient().toString(), null, messageOferta.getBytes("UTF-8"));
+                                        channel.basicPublish("exchangeTranzactii", valueCerere.getIdClient(), null, message.getBytes("UTF-8"));
+                                        channel.basicPublish("exchangeTranzactii", valueOferta.getIdClient(), null, messageOferta.getBytes("UTF-8"));
                                     }
                                 } catch (IOException e) {
                                     e.printStackTrace();

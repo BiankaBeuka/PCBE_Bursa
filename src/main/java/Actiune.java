@@ -6,13 +6,13 @@ public class Actiune {
 
 
 
-    private UUID idClient;
+    private String idClient;
     private UUID idActiune;
     private String nume;
     private int cantitate;
     private float pret;
 
-    public Actiune( UUID idActiune, UUID idClient, String type, String nume, int cantitate, float pret) {
+    public Actiune( UUID idActiune, String idClient, String type, String nume, int cantitate, float pret) {
         this.type = type;
         this.idActiune = idActiune;
         this.idClient = idClient;
@@ -74,7 +74,7 @@ public class Actiune {
         this.pret = pret;
     }
 
-    public UUID getIdClient() {
+    public String getIdClient() {
         return idClient;
     }
 
@@ -98,7 +98,7 @@ public class Actiune {
 
     public static Actiune toAction(String[] array){
         String type = array[1].replace("\'","");
-        UUID idClient=UUID.fromString(array[3]);
+        String idClient=array[3];
         UUID idActiune=UUID.fromString(array[5]);
         String nume = array[7].replace("\'","");
         int cantitate = Integer.parseInt(array[9]);

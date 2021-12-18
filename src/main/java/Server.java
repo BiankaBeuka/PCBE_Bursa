@@ -22,7 +22,7 @@ public class Server {
         ThreadVanzari threadVanzari = new ThreadVanzari(factory,sem,listaCereri,listaOferte,istoric);
         threadVanzari.start();
 
-        ThreadTranzactii threadTranzactii = new ThreadTranzactii(factory,sem,listaCereri,listaOferte,istoric);
+        ThreadTranzactii threadTranzactii = new ThreadTranzactii(factory,listaCereri,listaOferte,istoric);
         threadTranzactii.start();
 
         threadListe.join();
